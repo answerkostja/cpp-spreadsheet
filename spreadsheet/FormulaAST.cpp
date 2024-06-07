@@ -145,36 +145,18 @@ public:
 
     CellInterface::Value Evaluate(const SheetInterface& sheet) const override {
         // Скопируйте ваше решение из предыдущих уроков.
-        constexpr double max = std::numeric_limits<double>::max();
+        
         if (std::holds_alternative<double>(lhs_->Evaluate(sheet)) && std::holds_alternative<double>(rhs_->Evaluate(sheet))) {
             switch (GetPrecedence()) {
             case EP_ADD:
-                if (std::get<double>(lhs_->Evaluate(sheet)) > max - std::get<double>(rhs_->Evaluate(sheet))) {
-                    return FormulaError(FormulaError::Category::Arithmetic);
-                }
-                return std::get<double>(lhs_->Evaluate(sheet)) + std::get<double>(rhs_->Evaluate(sheet));
+                return CheckADD(sheet);
             case EP_SUB:
-                if (std::get<double>(lhs_->Evaluate(sheet)) < - max + std::get<double>(rhs_->Evaluate(sheet))) {
-                    return FormulaError(FormulaError::Category::Arithmetic);
-                }
-                return std::get<double>(lhs_->Evaluate(sheet)) - std::get<double>(rhs_->Evaluate(sheet));
+                return CheckSUB(sheet);
             case EP_MUL:
-                if (std::get<double>(rhs_->Evaluate(sheet)) != 0) {
-                    if (std::get<double>(lhs_->Evaluate(sheet)) > max / std::get<double>(rhs_->Evaluate(sheet))) {
-                        return FormulaError(FormulaError::Category::Arithmetic);
-                    }
-                }
-                return std::get<double>(lhs_->Evaluate(sheet)) * std::get<double>(rhs_->Evaluate(sheet));
+                return CheckMUL(sheet);
+                
             case EP_DIV:
-            {
-                if (std::isfinite(std::get<double>(lhs_->Evaluate(sheet)) / std::get<double>(rhs_->Evaluate(sheet)))) {
-                    return std::get<double>(lhs_->Evaluate(sheet)) / std::get<double>(rhs_->Evaluate(sheet));
-                }
-                else {
-                    return FormulaError(FormulaError::Category::Arithmetic);
-                }
-            }
-            return static_cast<double>(EP_DIV);
+                return CheckDIV(sheet);
             default:
                 // have to do this because VC++ has a buggy warning
                 assert(false);
@@ -193,6 +175,40 @@ public:
     
 
 private:
+    CellInterface::Value CheckADD(const SheetInterface& sheet) const {
+        if (std::get<double>(lhs_->Evaluate(sheet)) > max - std::get<double>(rhs_->Evaluate(sheet))) {
+            return FormulaError(FormulaError::Category::Arithmetic);
+        }
+        return std::get<double>(lhs_->Evaluate(sheet)) + std::get<double>(rhs_->Evaluate(sheet));
+    }
+
+    CellInterface::Value CheckSUB(const SheetInterface& sheet) const{
+        if (std::get<double>(lhs_->Evaluate(sheet)) < -max + std::get<double>(rhs_->Evaluate(sheet))) {
+            return FormulaError(FormulaError::Category::Arithmetic);
+        }
+        return std::get<double>(lhs_->Evaluate(sheet)) - std::get<double>(rhs_->Evaluate(sheet));
+    }
+
+    CellInterface::Value CheckMUL(const SheetInterface& sheet) const {
+        if (std::get<double>(rhs_->Evaluate(sheet)) != 0) {
+            if (std::get<double>(lhs_->Evaluate(sheet)) > max / std::get<double>(rhs_->Evaluate(sheet))) {
+                return FormulaError(FormulaError::Category::Arithmetic);
+            }
+        }
+        return std::get<double>(lhs_->Evaluate(sheet)) * std::get<double>(rhs_->Evaluate(sheet));
+    }
+
+    CellInterface::Value CheckDIV(const SheetInterface& sheet) const {
+
+        if (std::isfinite(std::get<double>(lhs_->Evaluate(sheet)) / std::get<double>(rhs_->Evaluate(sheet)))) {
+            return std::get<double>(lhs_->Evaluate(sheet)) / std::get<double>(rhs_->Evaluate(sheet));
+        }
+        else {
+            return FormulaError(FormulaError::Category::Arithmetic);
+        }
+    }
+
+    double max = std::numeric_limits<double>::max();
     Type type_;
     std::unique_ptr<Expr> lhs_;
     std::unique_ptr<Expr> rhs_;
@@ -229,12 +245,7 @@ public:
     CellInterface::Value Evaluate(const SheetInterface& sheet) const override {
         // Скопируйте ваше решение из предыдущих уроков.
         if (std::holds_alternative<double>(operand_->Evaluate(sheet))) {
-            if (type_ == UnaryPlus) {
-                return std::get<double>(operand_->Evaluate(sheet));
-            }
-            else {
-                return (-1) * std::get<double>(operand_->Evaluate(sheet));
-            }
+            return UnaryPlusOrMinus(sheet);
         }
         return std::get<FormulaError>(operand_->Evaluate(sheet));
         
@@ -242,6 +253,15 @@ public:
     
 
 private:
+
+    CellInterface::Value UnaryPlusOrMinus(const SheetInterface& sheet) const{
+        if (type_ == UnaryPlus) {
+            return std::get<double>(operand_->Evaluate(sheet));
+        }
+        else {
+            return (-1) * std::get<double>(operand_->Evaluate(sheet));
+        }
+    }
     Type type_;
     std::unique_ptr<Expr> operand_;
 };
