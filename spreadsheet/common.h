@@ -39,7 +39,7 @@ public:
     enum class Category {
         Ref,    // ссылка на ячейку с некорректной позицией
         Value,  // ячейка не может быть трактована как число
-        Div0,  // в результате вычисления возникло деление на ноль
+        Arithmetic,  // в результате вычисления возникло деление на ноль
     };
 
     FormulaError(Category category);
@@ -97,6 +97,7 @@ public:
     // формуле. Список отсортирован по возрастанию и не содержит повторяющихся
     // ячеек. В случае текстовой ячейки список пуст.
     virtual std::vector<Position> GetReferencedCells() const = 0;
+
 };
 
 inline constexpr char FORMULA_SIGN = '=';

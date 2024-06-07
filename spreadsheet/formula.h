@@ -36,6 +36,5 @@ public:
     virtual std::vector<Position> GetReferencedCells() const = 0;
 };
 
-// Парсит переданное выражение и возвращает объект формулы.
-// Бросает FormulaException в случае, если формула синтаксически некорректна.
-std::unique_ptr<FormulaInterface> ParseFormula(std::string expression);
+
+
